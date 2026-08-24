@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,14 +18,14 @@
     }
 
     header {
-      padding: 25px;
       text-align: center;
+      padding: 35px 20px;
       border-bottom: 1px solid #222;
     }
 
     header h1 {
       margin: 0;
-      font-size: 32px;
+      font-size: 36px;
     }
 
     header p {
@@ -33,14 +33,14 @@
     }
 
     .container {
-      max-width: 1100px;
+      max-width: 1200px;
       margin: auto;
       padding: 30px 20px;
     }
 
     .products {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 20px;
     }
 
@@ -48,65 +48,53 @@
       background: #151515;
       border: 1px solid #252525;
       border-radius: 14px;
-      padding: 15px;
+      padding: 12px;
     }
 
     .product img {
       width: 100%;
-      height: 240px;
+      height: 260px;
       object-fit: cover;
       border-radius: 10px;
       background: #222;
     }
 
     .product h2 {
-      font-size: 18px;
-      margin-bottom: 8px;
+      font-size: 17px;
+      margin: 13px 4px 7px;
     }
 
     .price {
       color: #aaa;
-      margin-bottom: 15px;
+      margin: 0 4px 13px;
     }
 
-    button {
+    .category {
+      color: #777;
+      font-size: 13px;
+      margin: 0 4px 12px;
+    }
+
+    .buy {
+      display: block;
       width: 100%;
       padding: 12px;
-      border: 0;
-      border-radius: 8px;
+      text-align: center;
+      text-decoration: none;
+      border-radius: 9px;
       background: white;
       color: black;
       font-weight: bold;
-      cursor: pointer;
     }
 
-    button:hover {
+    .buy:hover {
       opacity: 0.85;
     }
 
-    .agents {
-      display: none;
-      margin-top: 10px;
-    }
-
-    .agents a {
-      display: block;
-      text-decoration: none;
-      text-align: center;
-      padding: 10px;
-      margin-top: 7px;
-      border-radius: 8px;
-      background: #222;
-      color: white;
-    }
-
-    .agents a:hover {
-      background: #333;
-    }
-
-    #loading {
+    #status {
       text-align: center;
       color: #888;
+      margin-bottom: 25px;
     }
   </style>
 </head>
@@ -120,118 +108,163 @@
 
 <div class="container">
 
-  <p id="loading">Loading finds...</p>
+  <div id="status">Loading finds...</div>
 
   <div class="products" id="products"></div>
 
 </div>
 
 <script>
-  /*
-    YOUR GOOGLE SHEET
 
-    We will connect your sheet here.
-  */
+const SHEET_ID = "1CVIDn9rfFtDyVGz1lBo1Gb1TydB921_OtGwLBlFBmwo";
 
-  const SHEET_ID = "1CVIDn9rfFtDyVGz1lBo1Gb1TydB921_OtGwLBlFBmwo";
+const SHEET_GID = "946829648";
 
-  const SHEET_GID = "946829648";
+const SHEET_URL =
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${SHEET_GID}`;
 
-  const agents = [
-    "CNFans",
-    "Hipobuy",
-    "WTCBuy",
-    "Litbuy",
-    "Oopbuy"
-  ];
 
-  /*
-    Temporary example products.
+async function loadProducts() {
 
-    Once we connect the Sheet, these will be replaced
-    automatically by your spreadsheet products.
-  */
+  try {
 
-  const products = [
-    {
-      name: "Example Hoodie",
-      image: "https://via.placeholder.com/500",
-      price: "€29",
-      links: {
-        "CNFans": "#",
-        "Hipobuy": "#",
-        "WTCBuy": "#",
-        "Litbuy": "#",
-        "Oopbuy": "#"
-      }
-    }
-  ];
+    const response = await fetch(SHEET_URL);
 
-  const productsContainer = document.getElementById("products");
-  const loading = document.getElementById("loading");
+    const text = await response.text();
 
-  function showProducts() {
+    const jsonText = text.substring(
+      text.indexOf("{"),
+      text.lastIndexOf("}") + 1
+    );
 
-    loading.style.display = "none";
+    const data = JSON.parse(jsonText);
 
-    productsContainer.innerHTML = "";
+    const rows = data.table.rows;
 
-    products.forEach((product, index) => {
+    const products = rows.map(row => {
 
-      const card = document.createElement("div");
+      const cells = row.c.map(cell =>
+        cell && cell.v != null ? String(cell.v) : ""
+      );
 
-      card.className = "product";
+      return {
+        name: cells[0],
+        link: cells[1],
+        price: cells[2],
+        image: cells[3],
+        category: cells[4],
+        hot: cells[5],
+        qc: cells[6],
+        wtcbuy: cells[7]
+      };
 
-      let agentLinks = "";
+    }).filter(product =>
+      product.name && product.image
+    );
 
-      agents.forEach(agent => {
+    displayProducts(products);
 
-        const link = product.links[agent];
+  } catch (error) {
 
-        if (link && link !== "#") {
+    console.error(error);
 
-          agentLinks += `
-            <a href="${link}" target="_blank" rel="noopener">
-              ${agent}
-            </a>
-          `;
+    document.getElementById("status").textContent =
+      "Couldn't load the finds.";
 
-        }
-
-      });
-
-      card.innerHTML = `
-        <img src="${product.image}" alt="${product.name}">
-
-        <h2>${product.name}</h2>
-
-        <div class="price">${product.price}</div>
-
-        <button onclick="toggleAgents(${index})">
-          Choose Agent
-        </button>
-
-        <div class="agents" id="agents-${index}">
-          ${agentLinks}
-        </div>
-      `;
-
-      productsContainer.appendChild(card);
-    });
   }
 
-  function toggleAgents(index) {
+}
 
-    const box = document.getElementById("agents-" + index);
 
-    if (box.style.display === "block") {
-      box.style.display = "none";
+function displayProducts(products) {
+
+  const container = document.getElementById("products");
+
+  const status = document.getElementById("status");
+
+  container.innerHTML = "";
+
+  status.textContent = `${products.length} finds`;
+
+
+  products.forEach(product => {
+
+    const card = document.createElement("div");
+
+    card.className = "product";
+
+
+    const image = document.createElement("img");
+    image.src = product.image;
+    image.alt = product.name;
+    image.loading = "lazy";
+
+
+    const title = document.createElement("h2");
+    title.textContent = product.name;
+
+
+    const price = document.createElement("div");
+    price.className = "price";
+    price.textContent = `€${product.price}`;
+
+
+    card.appendChild(image);
+    card.appendChild(title);
+    card.appendChild(price);
+
+
+    if (product.category) {
+
+      const category = document.createElement("div");
+
+      category.className = "category";
+
+      category.textContent = product.category;
+
+      card.appendChild(category);
+
+    }
+
+
+    if (product.wtcbuy) {
+
+      const button = document.createElement("a");
+
+      button.className = "buy";
+
+      button.href = product.wtcbuy;
+
+      button.target = "_blank";
+
+      button.rel = "noopener noreferrer";
+
+      button.textContent = "Buy on WTCBuy";
+
+      card.appendChild(button);
+
     } else {
-      box.style.display = "block";
-    }
-  }
 
-  showProducts();
+      const missing = document.createElement("div");
+
+      missing.className = "category";
+
+      missing.textContent = "WTCBuy link coming soon";
+
+      card.appendChild(missing);
+
+    }
+
+
+    container.appendChild(card);
+
+  });
+
+}
+
+
+loadProducts();
+
 </script>
 
 </body>

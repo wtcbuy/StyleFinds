@@ -1,6 +1,5 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,14 +13,14 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #0f0f0f;
+      background: #0b0b0b;
       color: white;
     }
 
     header {
       padding: 25px;
       text-align: center;
-      border-bottom: 1px solid #292929;
+      border-bottom: 1px solid #222;
     }
 
     header h1 {
@@ -33,32 +32,36 @@
       color: #999;
     }
 
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 30px 20px;
+    }
+
     .products {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 20px;
-      padding: 30px;
-      max-width: 1100px;
-      margin: auto;
     }
 
     .product {
-      background: #181818;
-      border-radius: 15px;
+      background: #151515;
+      border: 1px solid #252525;
+      border-radius: 14px;
       padding: 15px;
-      border: 1px solid #292929;
     }
 
     .product img {
       width: 100%;
-      height: 250px;
+      height: 240px;
       object-fit: cover;
       border-radius: 10px;
-      background: #252525;
+      background: #222;
     }
 
     .product h2 {
       font-size: 18px;
+      margin-bottom: 8px;
     }
 
     .price {
@@ -70,7 +73,7 @@
       width: 100%;
       padding: 12px;
       border: 0;
-      border-radius: 10px;
+      border-radius: 8px;
       background: white;
       color: black;
       font-weight: bold;
@@ -81,35 +84,29 @@
       opacity: 0.85;
     }
 
-    .modal {
+    .agents {
       display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.75);
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .modal-box {
-      background: #181818;
-      border: 1px solid #333;
-      border-radius: 15px;
-      padding: 25px;
-      width: 100%;
-      max-width: 400px;
-    }
-
-    .agent {
       margin-top: 10px;
-      background: #252525;
+    }
+
+    .agents a {
+      display: block;
+      text-decoration: none;
+      text-align: center;
+      padding: 10px;
+      margin-top: 7px;
+      border-radius: 8px;
+      background: #222;
       color: white;
     }
 
-    .close {
+    .agents a:hover {
       background: #333;
-      color: white;
-      margin-top: 10px;
+    }
+
+    #loading {
+      text-align: center;
+      color: #888;
     }
   </style>
 </head>
@@ -118,54 +115,123 @@
 
 <header>
   <h1>StyleFinds</h1>
-  <p>Find your next style.</p>
+  <p>Find your next piece.</p>
 </header>
 
-<section class="products">
+<div class="container">
 
-  <div class="product">
-    <img src="https://via.placeholder.com/500x500" alt="Product">
-    <h2>Example Hoodie</h2>
-    <div class="price">€29.99</div>
-    <button onclick="openAgents()">Choose Agent</button>
-  </div>
+  <p id="loading">Loading finds...</p>
 
-</section>
+  <div class="products" id="products"></div>
 
-<div class="modal" id="agentModal">
-  <div class="modal-box">
-    <h2>Choose your agent</h2>
-
-    <button class="agent" onclick="goToAgent('https://example.com')">
-      Agent 1
-    </button>
-
-    <button class="agent" onclick="goToAgent('https://example.com')">
-      Agent 2
-    </button>
-
-    <button class="agent" onclick="goToAgent('https://example.com')">
-      Agent 3
-    </button>
-
-    <button class="close" onclick="closeAgents()">
-      Close
-    </button>
-  </div>
 </div>
 
 <script>
-  function openAgents() {
-    document.getElementById("agentModal").style.display = "flex";
+  /*
+    YOUR GOOGLE SHEET
+
+    We will connect your sheet here.
+  */
+
+  const SHEET_ID = "1CVIDn9rfFtDyVGz1lBo1Gb1TydB921_OtGwLBlFBmwo";
+
+  const SHEET_GID = "946829648";
+
+  const agents = [
+    "CNFans",
+    "Hipobuy",
+    "WTCBuy",
+    "Litbuy",
+    "Oopbuy"
+  ];
+
+  /*
+    Temporary example products.
+
+    Once we connect the Sheet, these will be replaced
+    automatically by your spreadsheet products.
+  */
+
+  const products = [
+    {
+      name: "Example Hoodie",
+      image: "https://via.placeholder.com/500",
+      price: "€29",
+      links: {
+        "CNFans": "#",
+        "Hipobuy": "#",
+        "WTCBuy": "#",
+        "Litbuy": "#",
+        "Oopbuy": "#"
+      }
+    }
+  ];
+
+  const productsContainer = document.getElementById("products");
+  const loading = document.getElementById("loading");
+
+  function showProducts() {
+
+    loading.style.display = "none";
+
+    productsContainer.innerHTML = "";
+
+    products.forEach((product, index) => {
+
+      const card = document.createElement("div");
+
+      card.className = "product";
+
+      let agentLinks = "";
+
+      agents.forEach(agent => {
+
+        const link = product.links[agent];
+
+        if (link && link !== "#") {
+
+          agentLinks += `
+            <a href="${link}" target="_blank" rel="noopener">
+              ${agent}
+            </a>
+          `;
+
+        }
+
+      });
+
+      card.innerHTML = `
+        <img src="${product.image}" alt="${product.name}">
+
+        <h2>${product.name}</h2>
+
+        <div class="price">${product.price}</div>
+
+        <button onclick="toggleAgents(${index})">
+          Choose Agent
+        </button>
+
+        <div class="agents" id="agents-${index}">
+          ${agentLinks}
+        </div>
+      `;
+
+      productsContainer.appendChild(card);
+    });
   }
 
-  function closeAgents() {
-    document.getElementById("agentModal").style.display = "none";
+  function toggleAgents(index) {
+
+    const box = document.getElementById("agents-" + index);
+
+    if (box.style.display === "block") {
+      box.style.display = "none";
+    } else {
+      box.style.display = "block";
+    }
   }
 
-  function goToAgent(link) {
-    window.location.href = link;
-  }
+  showProducts();
 </script>
 
 </body>
